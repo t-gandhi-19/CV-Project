@@ -27,6 +27,7 @@ _C.DATASET.DATASET = 'imagenet32'
 _C.DATASET.DATA_DIR = 'data/tp'
 _C.DATASET.DO_LOWER_CASE = True
 _C.DATASET.CACHE_DIR = 'cache'
+_C.DATASET.RECTIFIED = False
 
 '''
 ----------------------------- TASK options -------------------------------

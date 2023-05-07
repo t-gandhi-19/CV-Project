@@ -3,10 +3,11 @@ DATASET:
   DATA_DIR: data/chinese_car
   DO_LOWER_CASE: True
   CACHE_DIR: cache
+  RECTIFIED: False
 
 TASK:
   DEPTH_ESTIMATE: True
-  COLOR_MODELS: ['rgb', 'hsv', 'lab', 'yuv', 'yiq', 'xyz', 'luv', 'hls', 'ycbcr']
+  COLOR_MODELS: ['rgb', 'grey' , 'lab', 'bgr' , 'b' , 'g' , 'r', 'l' , 'y' , 'yuv'] 
   VIEW_3D: False
   WINDOW_SIZE: 5
   SEARCH_SIZE: 100
