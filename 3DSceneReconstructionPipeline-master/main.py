@@ -17,13 +17,13 @@ if __name__ == "__main__":
 
     # if args.pipeline == "true":
         ## 3D Reconstruction from 2D Images ##
-    reconstructionFrom2DImages = ReconstructionFrom2DImages( applicationProperties )
-    reconstructionFrom2DImages.complete_pipeline()
+    # reconstructionFrom2DImages = ReconstructionFrom2DImages( applicationProperties )
+    # reconstructionFrom2DImages.complete_pipeline()
 
     # # elif args.pipeline == "flow":
     # opticalFlow = ComputeFlow( applicationProperties )
     # opticalFlow.complete_pipeline()
 
     # else:
-    # stereo = Stereo( applicationProperties )
-    # stereo.complete_pipeline()
+    stereo = Stereo( applicationProperties )
+    stereo.complete_pipeline()

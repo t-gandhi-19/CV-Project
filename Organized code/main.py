@@ -6,6 +6,8 @@ import os
 import open3d as o3d
 from image_rectification import rectify
 from disparity_map import get_disparity_map , get_depth_map
+from middlebury_dataloader import middlebury_DataLoader
+from stereo import Two_Image_Stereo
 
 def display_depth_map(depth_map, color_img, K1 , K2 , baseline , doffs):
     '''
@@ -73,38 +75,52 @@ def main():
 
     # list of all folders in data directory
     data_dir = cfg.DATASET.DATA_DIR
-    data_dir_exists = os.path.exists(data_dir)
-    list_of_folders = []
-    if data_dir_exists:
-        print("Data directory exists!", data_dir)
-        list_of_folders.extend(os.listdir(data_dir))
+    Image_list = middlebury_DataLoader.load_middlebury_data(data_dir)
 
-    else:
-        print("Data directory does not exist!", data_dir)
-   
-    # remove .DS_Store from list of folders
-    if ".DS_Store" in list_of_folders:
-        list_of_folders.remove(".DS_Store")
+    if cfg.TASK.TWO_IMAGES_STEREO == True:
+        print("Task 1: Two Images Stereo")
+    
+    elif cfg.TASK.MULTIPLE_IMAGES_STEREO == True:
+        print("Task 2: Multiple Images Stereo")
+        point_cloud_list = []
+        poiint_color_list = []
+        disparity_list = []
+        depth_list = []
 
-    list_of_folders.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
+        # create pairs of images for stereo
+        image_pairs = []
+        i = 0
+        while i < len(Image_list):
+            image_pairs.append([i , i+1])
+            i += 2
 
-    print("List of folders in data directory:", list_of_folders)
-
-    for i, name in enumerate(list_of_folders):
-        if cfg.DATASET.RECTIFIED == False:
-            l_img = cv2.imread(os.path.join(data_dir, name, "im0.png"))
-            r_img = cv2.imread(os.path.join(data_dir, name, "im1.png"))
-            rectified_l_img , rectified_r_img  , _ , _ = rectify(l_img, r_img) 
-            cv2.imwrite(os.path.join(data_dir, name, "rectified_im0.png"), rectified_l_img)
-            cv2.imwrite(os.path.join(data_dir, name, "rectified_im1.png"), rectified_r_img)
-        else:
-            rectified_l_img = cv2.imread(os.path.join(data_dir, name, "im0.png"))
-            rectified_r_img = cv2.imread(os.path.join(data_dir, name, "im1.png"))
+        for pair in image_pairs:
+            print("Calculating maps and point cloud for pair:", pair)
+            i = pair[0]
+            j = pair[1]
+            img1 = Image_list[i]
+            img2 = Image_list[j]
+            kernel = TwoViewStereo.sad_kernel
+            point_cloud , point_color , disparity_map , depth_map =  Two_Image_Stereo(img1, img2, 5, kernel)
         
-        calibration_file = os.path.join(data_dir, name, "calib.txt")
-        K1 , K2 , doffs , baseline = get_parameters(cfg , calibration_file)
-        disparity_map = get_disparity_map(cfg , rectified_l_img , rectified_r_img)
-        depth_map = get_depth_map(disparity_map , K1 , K2 , doffs , baseline)
+
+    # print("List of folders in data directory:", list_of_folders)
+
+    # for i, name in enumerate(list_of_folders):
+    #     if cfg.DATASET.RECTIFIED == False:
+    #         l_img = cv2.imread(os.path.join(data_dir, name, "im0.png"))
+    #         r_img = cv2.imread(os.path.join(data_dir, name, "im1.png"))
+    #         rectified_l_img , rectified_r_img  , _ , _ = rectify(l_img, r_img) 
+    #         cv2.imwrite(os.path.join(data_dir, name, "rectified_im0.png"), rectified_l_img)
+    #         cv2.imwrite(os.path.join(data_dir, name, "rectified_im1.png"), rectified_r_img)
+    #     else:
+    #         rectified_l_img = cv2.imread(os.path.join(data_dir, name, "im0.png"))
+    #         rectified_r_img = cv2.imread(os.path.join(data_dir, name, "im1.png"))
+        
+    #     calibration_file = os.path.join(data_dir, name, "calib.txt")
+    #     K1 , K2 , doffs , baseline = get_parameters(cfg , calibration_file)
+    #     disparity_map = get_disparity_map(cfg , rectified_l_img , rectified_r_img)
+    #     depth_map = get_depth_map(disparity_map , K1 , K2 , doffs , baseline)
 
 if __name__ == "__main__":
     main()

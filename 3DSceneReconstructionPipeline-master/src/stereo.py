@@ -187,24 +187,28 @@ class Stereo( object ):
     def aggregate( self, DATA ):
 
         pcl_list, pcl_color_list, disp_map_list, dep_map_list = [], [], [], []
-        pairs = [(0, 2), (2, 4), (5, 7), (8, 10), (13, 15), (16, 18), (19, 21), (22, 24), (25, 27)]
+        pairs = [(0, 2), (2, 4), (5, 7), (8, 10), (13, 15), (16, 18), (19, 21), (22, 24),(25, 27),(28,30),(32,34),(36,38)]
 
         for pair in pairs:
+            print(pair)
             i, j = pair
             _pcl, _pcl_color, _disp_map, _dep_map = TwoViewStereo.two_view(DATA[i], DATA[j], 5, TwoViewStereo.sad_kernel)
             pcl_list.append(_pcl)
             pcl_color_list.append(_pcl_color)
             disp_map_list.append(_disp_map)
             dep_map_list.append(_dep_map)
-
-        plot = k3d.plot(camera_auto_fit=True)
-        for pcl, color in zip(pcl_list, pcl_color_list):
-            color = color.astype(np.uint8)
-            color32 = (color[:, 0] * 256**2 + color[:, 1] * 256**1 + color[:, 2] * 256**0).astype(
-                np.uint32
-            )
-            plot += k3d.points(pcl.astype(float), color32, point_size=0.001, shader="flat")
-        plot.display()
+            print(_pcl_color)
+        
+        # pcd = o3d.geometry.PointCloud()
+        # for pcl, color in zip(pcl_list, pcl_color_list):
+        #     pcd.points = o3d.utility.Vector3dVector(pcl)
+        #     pcd.colors = o3d.utility.Vector3dVector(color / 255.0)
+        # o3d.visualization.draw_geometries([pcd])
+    
+        # draw all point clouds in one plot
+        pcl = np.concatenate(pcl_list, axis=0) 
+        color = np.concatenate(pcl_color_list, axis=0)
+        self.viz_3d_embedded(pcl, color)
 
     def complete_pipeline( self ) -> None:
 
@@ -212,42 +216,44 @@ class Stereo( object ):
 
         DATA, view_i, view_j = self.load_dataset()
 
-        rgb_i_rect, rgb_j_rect, K_i_corr, K_j_corr, B, R_irect, R_wi, T_wi = self.rectify_two_views( view_i, view_j )
+        # rgb_i_rect, rgb_j_rect, K_i_corr, K_j_corr, B, R_irect, R_wi, T_wi = self.rectify_two_views( view_i, view_j )
 
-        value = self.compute_disparity( rgb_i_rect, rgb_j_rect, K_i_corr, K_j_corr )
+        # value = self.compute_disparity( rgb_i_rect, rgb_j_rect, K_i_corr, K_j_corr )
 
-        # example for the pixel (u=500,v=300) from the left view
-        v = 300
-        best_matched_right_pixel = value[v].argmin()
-        best_matched_left_pixel = value[:,best_matched_right_pixel].argmin()
-        print(v, best_matched_left_pixel)
-        consistent_flag = best_matched_left_pixel == v
-        print(consistent_flag)
+        # # example for the pixel (u=500,v=300) from the left view
+        # v = 300
+        # best_matched_right_pixel = value[v].argmin()
+        # best_matched_left_pixel = value[:,best_matched_right_pixel].argmin()
+        # print(v, best_matched_left_pixel)
+        # consistent_flag = best_matched_left_pixel == v
+        # print(consistent_flag)
 
-        # example for the pixel (u=500,v=380) from the left view
-        v = 380
-        best_matched_right_pixel = value[v].argmin()
-        best_matched_left_pixel = value[:,best_matched_right_pixel].argmin()
-        print(v, best_matched_left_pixel)
-        consistent_flag = best_matched_left_pixel == v
-        print(consistent_flag)
-        # self, rgb_i_rect, rgb_j_rect, K_i_corr, K_j_corr
-        disp_map, consistency_mask = TwoViewStereo.compute_disparity_map( rgb_i_rect, rgb_j_rect, d0=K_j_corr[1, 2] - K_i_corr[1, 2], k_size=5 )
+        # # example for the pixel (u=500,v=380) from the left view
+        # v = 380
+        # best_matched_right_pixel = value[v].argmin()
+        # best_matched_left_pixel = value[:,best_matched_right_pixel].argmin()
+        # print(v, best_matched_left_pixel)
+        # consistent_flag = best_matched_left_pixel == v
+        # print(consistent_flag)
+        # # self, rgb_i_rect, rgb_j_rect, K_i_corr, K_j_corr
+        # disp_map, consistency_mask = TwoViewStereo.compute_disparity_map( rgb_i_rect, rgb_j_rect, d0=K_j_corr[1, 2] - K_i_corr[1, 2], k_size=5 )
 
-        dep_map, xyz_cam = self.compute_dep_and_pcl( disp_map, B, rgb_i_rect, K_i_corr )
+        # dep_map, xyz_cam = self.compute_dep_and_pcl( disp_map, B, rgb_i_rect, K_i_corr )
 
-        mask, pcl_world, pcl_cam, pcl_color = self.postprocessing( disp_map, dep_map, rgb_i_rect, xyz_cam, consistency_mask, R_irect, R_wi, T_wi )
+        # mask, pcl_world, pcl_cam, pcl_color = self.postprocessing( disp_map, dep_map, rgb_i_rect, xyz_cam, consistency_mask, R_irect, R_wi, T_wi )
 
         # SSD Two view reconstruction results
-        self.viz_3d_embedded( pcl_world, pcl_color.astype(np.uint8) )
+        # self.viz_3d_embedded( pcl_world, pcl_color.astype(np.uint8) )
 
-        # SAD Two view reconstruction results
-        pcl_sad, pcl_color_sad, disp_map_sad, dep_map_sad = TwoViewStereo.two_view(DATA[0], DATA[2], 5, TwoViewStereo.sad_kernel)
-        self.viz_3d_embedded(pcl_sad, pcl_color_sad.astype(np.uint8))
+        # # SAD Two view reconstruction results
+        # pcl_sad, pcl_color_sad, disp_map_sad, dep_map_sad = TwoViewStereo.two_view(DATA[0], DATA[2], 5, TwoViewStereo.sad_kernel)
+        # self.viz_3d_embedded(pcl_sad, pcl_color_sad.astype(np.uint8))
 
-        # ZNCC Two view reconstruction results
-        pcl_zncc, pcl_color_zncc, disp_map_zncc, dep_map_zncc = TwoViewStereo.two_view(DATA[0], DATA[2], 5, TwoViewStereo.zncc_kernel)
-        self.viz_3d_embedded(pcl_zncc, pcl_color_zncc.astype(np.uint8))
+        # # ZNCC Two view reconstruction results
+        # pcl_zncc, pcl_color_zncc, disp_map_zncc, dep_map_zncc = TwoViewStereo.two_view(DATA[0], DATA[2], 5, TwoViewStereo.zncc_kernel)
+        # self.viz_3d_embedded(pcl_zncc, pcl_color_zncc.astype(np.uint8))
 
+        print("Aggregate")
+        
         self.aggregate( DATA )
 
