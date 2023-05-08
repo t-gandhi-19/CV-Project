@@ -1,15 +1,15 @@
 DATASET:
   DATASET: middlebury
-  DATA_DIR: data/chinese_car
+  DATA_DIR: data/middlebury_2014
   DO_LOWER_CASE: True
   CACHE_DIR: cache
   RECTIFIED: False
 
 TASK:
   DEPTH_ESTIMATE: True
-  COLOR_MODELS: ['rgb', 'grey' , 'lab', 'bgr' , 'b' , 'g' , 'r', 'l' , 'y' , 'yuv'] 
+  COLOR_MODELS: ['rgb', 'gray' , 'lab', 'bgr' , 'b' , 'g' , 'r', 'l' , 'y' , 'yuv'] 
   VIEW_3D: False
-  WINDOW_SIZE: 5
+  WINDOW_SIZE: 1000
   SEARCH_SIZE: 100
   SAVE_DISPARITY_MAP: False
 
