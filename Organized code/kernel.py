@@ -1,6 +1,6 @@
 import numpy as np
 
-def sum_abs_dist(src, dst):
+def sum_abs_dist(src = None, dst = None):
     '''computes sum of absoulte difference error between two patches
     input src - M,KxK,3
     dst - N,KxK,3'''

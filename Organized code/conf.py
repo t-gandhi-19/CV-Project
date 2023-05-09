@@ -48,6 +48,8 @@ _C.TASK.VIEW_3D = False
 _C.TASK.WINDOW_SIZE = 15
 _C.TASK.SEARCH_SIZE = 100
 _C.TASK.SAVE_DISPARITY_MAP = False
+_C.TASK.TWO_IMAGES_STEREO = False
+_C.TASK.MULTIPLE_IMAGES_STEREO = True
 
 
 # --------------------------------- Default config -------------------------- #
