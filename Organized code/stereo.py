@@ -38,8 +38,50 @@ def Find_Relative_R_T_B(Im1_R , Im1_T , Im2_R , Im2_T):
     B = np.linalg.norm( T_ji )
     return R_ji, T_ji, B
 
+
 def find_Rectification_R(EPS= None , Relative_T = None):
-    pass
+    '''T_ji - 3x1'''
+    
+    e_i = Relative_T.squeeze(-1) / ( Relative_T.squeeze(-1)[1] + EPS )
+    # squeezed_T_ji = []
+    # for i in range(len(T_ji)):
+    #     if T_ji.shape[i] != 1:
+    #         squeezed_T_ji.append(T_ji[i])
+    
+    # divisor = squeezed_T_ji[1] + EPS     
+    # e_i = []
+    # for i in range(len(squeezed_T_ji)):
+    #     e_i.append(squeezed_T_ji[i] / divisor)
+    
+    es = []   
+    norm = [np.sqrt(np.sum(np.square(Relative_T + EPS)))]
+    e_2 = Relative_T / norm[0]
+    es.append(e_2)
+    
+    e_1 = np.zeros((3,1))
+    e_1[0] = e_2[1]*1
+    e_1[1] = -e_2[0]*1
+    e_1[2] = 0
+    norm.append(np.sqrt(np.sum(np.square(e_1 + EPS))))
+    e_1 = e_1 / norm[1]
+    es.append(e_1)
+    
+    e_3 = np.zeros(3)
+    e_3[0] = e_1[1]*e_2[2] - e_1[2]*e_2[1]
+    e_3[1] = e_1[2]*e_2[0] - e_1[0]*e_2[2]
+    e_3[2] = e_1[0]*e_2[1] - e_1[1]*e_2[0]
+    norm.append(np.sqrt(np.sum(np.square(e_3 + EPS))))
+    e_3 = e_3 / norm[2]
+    es.append(e_3)
+    
+    R_irect = np.zeros((3, 3))
+    print(es[1].shape)
+    R_irect[0, :] = es[1].reshape((3))
+    R_irect[1, :] = es[0].reshape((3))
+    R_irect[2, :] = es[2].reshape((3))
+    
+    return R_irect
+    
 
 def Depth_Map(Disparity_map , K_corrected_left,  Baseline):
     depth_map = np.zeros_like(Disparity_map, dtype=np.float32)
