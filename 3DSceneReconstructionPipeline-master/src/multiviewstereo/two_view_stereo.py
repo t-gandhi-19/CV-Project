@@ -348,22 +348,17 @@ class TwoViewStereo( object ):
         o3d_pcd.points = o3d.utility.Vector3dVector(pcl_cam.reshape(-1, 3).copy())
         cl, ind = o3d_pcd.remove_statistical_outlier(nb_neighbors=10, std_ratio=2.0)
         _pcl_mask = np.zeros(pcl_cam.shape[0])
+
+
         _pcl_mask[ind] = 1.0
         pcl_mask = np.zeros(xyz_cam.shape[0] * xyz_cam.shape[1])
         pcl_mask[mask.reshape(-1) > 0] = _pcl_mask
+        
         mask_pcl = pcl_mask.reshape(xyz_cam.shape[0], xyz_cam.shape[1])
-        # imageio.imsave("./debug_pcl_mask.png", mask_pcl)
         mask = np.minimum(mask, mask_pcl)
-        # imageio.imsave("./debug_final_mask.png", mask)
-
         pcl_cam = xyz_cam.reshape(-1, 3)[mask.reshape(-1) > 0]
         pcl_color = rgb.reshape(-1, 3)[mask.reshape(-1) > 0]
-
         pcl_world = ( ( R_wc.T @ pcl_cam.T ) - ( R_wc.T @ T_wc ) ).T
-
-        # np.savetxt("./debug_pcl_world.txt", np.concatenate([pcl_world, pcl_color], -1))
-        # np.savetxt("./debug_pcl_rect.txt", np.concatenate([pcl_cam, pcl_color], -1))
-
         return mask, pcl_world, pcl_cam, pcl_color
 
     @staticmethod
