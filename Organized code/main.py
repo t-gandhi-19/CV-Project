@@ -75,7 +75,7 @@ def main():
 
     # list of all folders in data directory
     data_dir = cfg.DATASET.DATA_DIR
-    Image_list = middlebury_DataLoader.load_middlebury_data(data_dir)
+    Image_list = middlebury_DataLoader.load_middlebury_data(data_dir , "dino")
 
     if cfg.TASK.TWO_IMAGES_STEREO == True:
         print("Task 1: Two Images Stereo")
@@ -100,8 +100,7 @@ def main():
             j = pair[1]
             img1 = Image_list[i]
             img2 = Image_list[j]
-            kernel = TwoViewStereo.sad_kernel
-            point_cloud , point_color , disparity_map , depth_map =  Two_Image_Stereo(img1, img2, 5, kernel)
+            point_cloud , point_color , disparity_map , depth_map =  Two_Image_Stereo(img1, img2, 5)
         
 
     # print("List of folders in data directory:", list_of_folders)

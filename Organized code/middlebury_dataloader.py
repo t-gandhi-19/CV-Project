@@ -18,12 +18,12 @@ class middlebury_DataLoader(object):
             }
 
         try:
-            camera_parameter = [osp.join(datadir, keyword + "_par.txt")]
+            camera_parameter = osp.join(datadir, keyword + "_par.txt")
         except:
             print("camera not found or duplicated")
         
         try:
-            postition_data = [osp.join(datadir, keyword + "_ang.txt")]
+            postition_data = osp.join(datadir, keyword + "_ang.txt")
         except:
             print("camera not found or duplicated")
         
@@ -54,7 +54,7 @@ class middlebury_DataLoader(object):
                     "T": t.astype(np.float64),
                     "lat": lat,
                     "lon": lon,
-                    "rgb": image,
+                    "Image": image,
                 }
             )
         if len(Image_List) != n_views:

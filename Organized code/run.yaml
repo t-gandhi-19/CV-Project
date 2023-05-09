@@ -1,6 +1,6 @@
 DATASET:
   DATASET: middlebury
-  DATA_DIR: data/middlebury_2014
+  DATA_DIR: data/dino
   DO_LOWER_CASE: True
   CACHE_DIR: cache
   RECTIFIED: False
