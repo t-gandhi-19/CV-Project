@@ -155,3 +155,4 @@ cython_debug/
 old/data/**
 **/Organized code/data/*
 data.zip
+depth-mapping-github/
