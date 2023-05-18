@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import open3d as o3d
+import src.sfm2view as sfm
+from environment import ApplicationProperties
 
 class TwoViewStereo( object ):
 
@@ -353,11 +355,14 @@ class TwoViewStereo( object ):
         _pcl_mask[ind] = 1.0
         pcl_mask = np.zeros(xyz_cam.shape[0] * xyz_cam.shape[1])
         pcl_mask[mask.reshape(-1) > 0] = _pcl_mask
-        
+
         mask_pcl = pcl_mask.reshape(xyz_cam.shape[0], xyz_cam.shape[1])
         mask = np.minimum(mask, mask_pcl)
         pcl_cam = xyz_cam.reshape(-1, 3)[mask.reshape(-1) > 0]
         pcl_color = rgb.reshape(-1, 3)[mask.reshape(-1) > 0]
+        print("pcl_cam.shape", pcl_cam.shape)
+        print("R_wc.shape", R_wc.shape)
+        print("T_wc.shape", T_wc.shape)
         pcl_world = ( ( R_wc.T @ pcl_cam.T ) - ( R_wc.T @ T_wc ) ).T
         return mask, pcl_world, pcl_cam, pcl_color
 
@@ -368,12 +373,27 @@ class TwoViewStereo( object ):
         # * 1. rectify the views
         R_wi, T_wi = view_i["R"], view_i["T"][:, None]  # p_i = R_wi @ p_w + T_wi
         R_wj, T_wj = view_j["R"], view_j["T"][:, None]  # p_j = R_wj @ p_w + T_wj
-
+        K = view_i["K"]
+        images = [ view_i["rgb"], view_j["rgb"] ]
+        applicationProperties = ApplicationProperties("application.yml")
+        applicationProperties.initializeProperties()
+        sfm_obj = sfm.ReconstructionFrom2DImages(applicationProperties)
+        keypoints, descriptions = sfm_obj.detect_SIFT_features( images )
+        matches = sfm_obj.match_detected_keypoints(  images, keypoints, descriptions)
+        K, uncalibrated_1, uncalibrated_2, calibrated_1, calibrated_2 = sfm_obj.compute_calibrated_coordinates( matches, keypoints ,K)
+        E_ransac, inlier_matches = sfm_obj.estimate_ransac( images, matches, keypoints, calibrated_1, calibrated_2)
+        transform_candidates = sfm_obj.estimate_pose( E_ransac )
+        P1, P2, T, R = sfm_obj.compute_reconstruction( transform_candidates, calibrated_1, calibrated_2 )
+        # R, T = sfm_obj.recover_camera_pose( E_ransac, K, calibrated_1, calibrated_2 )
+        print("R candidates", R)
+        print("T candidates", T)
         R_ji, T_ji, B = TwoViewStereo.compute_right2left_transformation(R_wi, T_wi, R_wj, T_wj)
+        print("R_ji", R_ji)
+        print("T_ji", T_ji)
         assert T_ji[1, 0] > 0, "here we assume view i should be on the left, not on the right"
         EPS = 1e-6
         R_irect = TwoViewStereo.compute_rectification_R(EPS, T_ji)
-
+        print("R_irect", R_irect)
         rgb_i_rect, rgb_j_rect, K_i_corr, K_j_corr = TwoViewStereo.rectify_2view(
             view_i["rgb"],
             view_j["rgb"],

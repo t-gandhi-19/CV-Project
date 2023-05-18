@@ -87,6 +87,26 @@ def get_disparity_map(cfg , l_img , r_img):
     Visible_disparity_map = Visible_disparity_map.astype(np.uint8)
     return Visible_disparity_map
 
+def get_disparity_map(cfg , l_img , r_img):
+    print("hello_world")
+    color_models = cfg.TASK.COLOR_MODELS
+    print(color_models)
+    disparity_map_dict = {}
+    for color_model in color_models:
+        print(color_model)
+        disparity_map_dict[color_model] = disp_calculator(l_img, r_img, color_model , window_size = cfg.TASK.WINDOW_SIZE , search_size = cfg.TASK.SEARCH_SIZE)
+
+    Avg_disparity_map = np.zeros(disparity_map_dict[color_models[0]].shape)
+    for color_model in color_models:
+        print(color_model)
+        Avg_disparity_map += disparity_map_dict[color_model]
+    Avg_disparity_map /= len(color_models)
+    Visible_disparity_map = Avg_disparity_map.astype(np.float64) / cfg.TASK.SEARCH_SIZE
+    Visible_disparity_map = 255 * Visible_disparity_map
+    Visible_disparity_map = Visible_disparity_map.astype(np.uint8)
+    return Visible_disparity_map
+
+
 def get_depth_map(cfg , disparity_map , K1 , K2 , baseline , doffs):
     depth_map = np.zeros(disparity_map.shape)
     for i in range(disparity_map.shape[0]):

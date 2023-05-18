@@ -16,11 +16,13 @@ def sum_abs_dist(src = None, dst = None):
     new_array_src = np.zeros((src.shape[0], 1, src.shape[1], src.shape[2]))
     new_array_dst = np.zeros((1, dst.shape[0], dst.shape[1], dst.shape[2]))
 
+    print("first for loop")
     for i in range(src.shape[0]):
         for j in range(src.shape[1]):
             for k in range(src.shape[2]):
                 new_array_src[i][0][j][k] = src[i][j][k]
 
+    print("second for loop")
     for i in range(dst.shape[0]):
         for j in range(dst.shape[1]):
             for k in range(dst.shape[2]):
@@ -35,12 +37,16 @@ def sum_abs_dist(src = None, dst = None):
     dst = new_array_dst
     
     #compute sum of absolute difference
+
     sum_abs_d = np.zeros((src.shape[0], dst.shape[1]))
     sad = np.zeros((src.shape[0], dst.shape[1]))
+    print("third for loop")
     for channel in range(3):
-        sum_abs_d += np.sum(np.abs(src[:,:,:,channel] - dst[:,:,:,channel]), axis = 2)
+        print("channel: ", channel)
+        # sum_abs_d += np.sum(np.abs(src[:,:,:,channel] - dst[:,:,:,channel]), axis = 2)
+        # sum_abs_d = sum_abs_d + 
     
-    return sum_abs_d, sad
+    return sum_abs_d
 
 
 # a = np.random.rand(4,6,3)

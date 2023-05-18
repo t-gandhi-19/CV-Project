@@ -7,10 +7,13 @@ DATASET:
 
 TASK:
   DEPTH_ESTIMATE: True
-  COLOR_MODELS: ['rgb', 'gray' , 'lab', 'bgr' , 'b' , 'g' , 'r', 'l' , 'y' , 'yuv'] 
+  # COLOR_MODELS: ['rgb', 'gray' , 'lab', 'bgr' , 'b' , 'g' , 'r', 'l' , 'y' , 'yuv'] 
+  COLOR_MODELS: ['rgb', 'gray' ]
   VIEW_3D: False
   WINDOW_SIZE: 1000
   SEARCH_SIZE: 100
   SAVE_DISPARITY_MAP: False
+  TWO_IMAGES_STEREO: False
+  MULTIPLE_IMAGES_STEREO: True
 
 OUT_DIR: 'run_output'

@@ -44,14 +44,14 @@ class ReconstructionFrom2DImages( object ):
 
         return matches
 
-    def compute_calibrated_coordinates( self, matches, keypoints ) -> tuple:
-        f1 = f2 = float( self.applicationProperties.get_property_value( "3DReconstructionFrom2D.focalLength" ) )
-        u0 = float( self.applicationProperties.get_property_value( "3DReconstructionFrom2D.u0" ) )
-        v0 = float( self.applicationProperties.get_property_value( "3DReconstructionFrom2D.v0" ) )
+    def compute_calibrated_coordinates( self, matches, keypoints , K) -> tuple:
+        # f1 = f2 = float( self.applicationProperties.get_property_value( "3DReconstructionFrom2D.focalLength" ) )
+        # u0 = float( self.applicationProperties.get_property_value( "3DReconstructionFrom2D.u0" ) )
+        # v0 = float( self.applicationProperties.get_property_value( "3DReconstructionFrom2D.v0" ) )
 
-        K = np.array([[f1, 0, u0],
-              [0, f2, v0],
-              [0, 0, 1]])
+        # K = np.array([[f1, 0, u0],
+        #       [0, f2, v0],
+        #       [0, 0, 1]])
 
         uncalibrated_1 = [[ keypoints[0][match.queryIdx].pt[0], keypoints[0][match.queryIdx].pt[1], 1 ] for match in matches ]
         uncalibrated_2 = [[ keypoints[1][match.trainIdx].pt[0], keypoints[1][match.trainIdx].pt[1], 1 ] for match in matches ]

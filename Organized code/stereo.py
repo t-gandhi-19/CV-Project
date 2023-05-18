@@ -38,11 +38,11 @@ def Find_Relative_R_T_B(Im1_R , Im1_T , Im2_R , Im2_T):
     B = np.linalg.norm( T_ji )
     return R_ji, T_ji, B
 
-
 def find_Rectification_R(EPS= None , Relative_T = None):
     '''T_ji - 3x1'''
+    print(Relative_T.shape)
     
-    e_i = Relative_T.squeeze(-1) / ( Relative_T.squeeze(-1)[1] + EPS )
+    # e_i = Relative_T.squeeze(-1) / ( Relative_T.squeeze(-1)[1] + EPS )
     # squeezed_T_ji = []
     # for i in range(len(T_ji)):
     #     if T_ji.shape[i] != 1:
@@ -82,8 +82,8 @@ def find_Rectification_R(EPS= None , Relative_T = None):
     
     return R_irect
     
-
 def Depth_Map(Disparity_map , K_corrected_left,  Baseline):
+    print("Calculating Depth Map...")
     depth_map = np.zeros_like(Disparity_map, dtype=np.float32)
     for y in range(depth_map.shape[0]):
         for x in range(depth_map.shape[1]):
@@ -107,8 +107,13 @@ def image_patch(image , patch_size):
     for i in range(3):
         padded_image[:, :, i] = np.pad( image[:, :, i], int( patch_size / 2 ), mode='constant' )
     patch = np.zeros( (image.shape[0], image.shape[1], patch_size*patch_size, 3) )
+    # print image shape
+    print("image shape: ", image.shape)
+
     for x in range( image.shape[1] ):
         for y in range( image.shape[0] ):
+            if x % 1000 == 0 and y % 1000 == 0:
+                print(x,y)
             index_y, index_x = np.meshgrid( np.arange( x - int( patch_size / 2 ), x + int( patch_size / 2 ) + 1 ), np.arange( y - int( patch_size / 2 ), y + int( patch_size / 2 ) + 1 ) )
             index_x += int( patch_size / 2 )
             index_y += int( patch_size / 2 )
@@ -120,42 +125,46 @@ def Disparity_Map(Rectified_left_image , Rectified_right_image , Kernel_size=5 ,
     print("Computing Disparity Map")
     h = Rectified_left_image.shape[0]
     w = Rectified_left_image.shape[1]
+    print("here")
     disparity_map = np.zeros((h , w)).astype(np.float32)
     consistency_map = np.zeros((h , w)).astype(np.float32)
 
     patch_size = Kernel_size
     patch_left = image_patch(Rectified_left_image , patch_size)
+    print("here2")
     patch_right = image_patch(Rectified_right_image , patch_size) 
+    print("here3")
 
-    v_left_index , v_right_index = np.arrange(h) , np.arrange(h)
+    v_left_index , v_right_index = np.arange(h) , np.arange(h)
     disparity_points = v_left_index[:, None] - v_right_index[None, :] + d0
 
     iter = 0
+    # print
     while iter < w:
+        # if iter % 50 == 0:
+        print("Iter : " , iter)
         buff_left = patch_left[:, iter] 
         buff_right = patch_right[:, iter]
         value = sum_abs_dist(buff_left , buff_right)
+        # print(value.shape)
         best_match_right = np.argmin(value , axis=1)
-        match = np.arrange(h)
+        match = np.arange(h)
         disparity_map[:, iter] = disparity_points[match , best_match_right]
         best_match_left = np.argmin(value[: , best_match_right] , axis=0)
-        if best_match_left == v_left_index:
-            consistency_value = 1
-        else:
-            consistency_value = 0
+        consistency_value = best_match_left == v_left_index
         consistency_map[:, iter] = consistency_value
         iter += 1
     
     return disparity_map , consistency_map
 
-def Point_Cloud_refiner(Depth_Map , Rectified_left_image , Points_cloud , Rectification_R_left , Rectification_T_right , Consitency_Map , z_near=0.1 , z_far=1000):
+def Point_Cloud_refiner(Depth_Map2 , Rectified_left_image , Points_cloud , Rectification_R_left , Rectification_T_right , Consitency_Map , z_near=0.1 , z_far=1000):
     print("Refining Point Cloud")
     # remove background 
     hsv_mask = cv2.cvtColor(Rectified_left_image , cv2.COLOR_RGB2HSV)[..., -1]
     hsv_mask = (hsv_mask > 51).astype(np.uint8) * 255
     morph_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11,11))
     hsv_mask = cv2.morphologyEx(hsv_mask, cv2.MORPH_OPEN, morph_kernel).astype(float)
-    mask_depth = ((Depth_Map > z_near) & (Depth_Map < z_far)).astype(float)
+    mask_depth = ((Depth_Map2 > z_near) * (Depth_Map2 < z_far)).astype(float)
     mask = np.minimum(hsv_mask, mask_depth)
     if Consitency_Map is not None:
         mask = np.minimum(mask, Consitency_Map)
@@ -168,17 +177,77 @@ def Point_Cloud_refiner(Depth_Map , Rectified_left_image , Points_cloud , Rectif
     _pcl_mask[ind] = 1
     point_cloud_mask = np.zeros(Points_cloud.shape[0] * Points_cloud.shape[1])
     point_cloud_mask[mask.reshape(-1) > 0] = _pcl_mask
+    
     mask_pcl = point_cloud_mask.reshape(Points_cloud.shape[0], Points_cloud.shape[1])
     mask = np.minimum(mask, mask_pcl)
-
     camera_points = Points_cloud.reshape(-1, 3)[mask.reshape(-1) > 0]
     camera_colors = Rectified_left_image.reshape(-1, 3)[mask.reshape(-1) > 0]
-    world_points = (Rectification_R_left.T @ (camera_points.T - Rectification_T_right)).T
+    # print(Rectification_R_left.shape , Rectification_T_right.shape , camera_points.shape)
+    Rectification_T_right = Rectification_T_right.reshape(3, 1)
+    world_points = ((Rectification_R_left.T @ camera_points.T) - (Rectification_R_left.T @ Rectification_T_right)).T
 
     return mask , world_points , camera_points , camera_colors
 
+def postprocess(
+    dep_map,
+    rgb,
+    xyz_cam,
+    R_wc,
+    T_wc,
+    consistency_mask=None,
+    hsv_th=45,
+    hsv_close_ksize=11,
+    z_near=0.45,
+    z_far=0.65,
+):
+        """
+        Your goal in this function is:
+        given pcl_cam [N,3], R_wc [3,3] and T_wc [3,1]
+        compute the pcl_world with shape[N,3] in the world coordinate
+        """
+
+        # extract mask from rgb to remove background
+        mask_hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)[..., -1]
+        mask_hsv = (mask_hsv > hsv_th).astype(np.uint8) * 255
+        # imageio.imsave("./debug_hsv_mask.png", mask_hsv)
+        morph_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (hsv_close_ksize, hsv_close_ksize))
+        mask_hsv = cv2.morphologyEx(mask_hsv, cv2.MORPH_CLOSE, morph_kernel).astype(float)
+        # imageio.imsave("./debug_hsv_mask_closed.png", mask_hsv)
+
+        # constraint z-near, z-far
+        mask_dep = ((dep_map > z_near) * (dep_map < z_far)).astype(float)
+        # imageio.imsave("./debug_dep_mask.png", mask_dep)
+
+        mask = np.minimum(mask_dep, mask_hsv)
+        if consistency_mask is not None:
+            mask = np.minimum(mask, consistency_mask)
+        # imageio.imsave("./debug_before_xyz_mask.png", mask)
+
+        # filter xyz point cloud
+        pcl_cam = xyz_cam.reshape(-1, 3)[mask.reshape(-1) > 0]
+        o3d_pcd = o3d.geometry.PointCloud()
+        o3d_pcd.points = o3d.utility.Vector3dVector(pcl_cam.reshape(-1, 3).copy())
+        cl, ind = o3d_pcd.remove_statistical_outlier(nb_neighbors=10, std_ratio=2.0)
+        _pcl_mask = np.zeros(pcl_cam.shape[0])
+
+
+        _pcl_mask[ind] = 1.0
+        pcl_mask = np.zeros(xyz_cam.shape[0] * xyz_cam.shape[1])
+        pcl_mask[mask.reshape(-1) > 0] = _pcl_mask
+
+        mask_pcl = pcl_mask.reshape(xyz_cam.shape[0], xyz_cam.shape[1])
+        mask = np.minimum(mask, mask_pcl)
+        pcl_cam = xyz_cam.reshape(-1, 3)[mask.reshape(-1) > 0]
+        pcl_color = rgb.reshape(-1, 3)[mask.reshape(-1) > 0]
+        print("pcl_cam.shape", pcl_cam.shape)
+        print("R_wc.shape", R_wc.shape)
+        print("T_wc.shape", T_wc.shape)
+        pcl_world = ( ( R_wc.T @ pcl_cam.T ) - ( R_wc.T @ T_wc ) ).T
+        return mask, pcl_world, pcl_cam, pcl_color
+
 def Rectificator(left_image , right_image , Left_Rectified_R , Right_Rectified_R , Left_K , Right_K , x_axis_padding= 20 , y_axis_padding= 20):
     # Given the rectify rotation, compute the rectified view and corrected projection matrix
+    print("Rectifying Images")
     if left_image.shape == right_image.shape :
         h, w = left_image.shape[:2]
 
@@ -212,28 +281,20 @@ def Rectificator(left_image , right_image , Left_Rectified_R , Right_Rectified_R
         raise ValueError
 
 def Two_Image_Stereo(Image1 , Image2 , Kernel_size=5 , EPS= 1e-6):
+    print("stereo started")
     Im1_R = Image1["R"]
-    Im1_T = Image1["T"]
-
+    Im1_T = Image1["T"][: , None]
     Im2_R = Image2["R"]
-    Im2_T = Image2["T"]
-
-    Relative_R = None
-    Relative_T = None
-    Baseline = None
-
+    Im2_T = Image2["T"][: , None]
     Relative_R , Relative_T , Baseline = Find_Relative_R_T_B(Im1_R , Im1_T , Im2_R , Im2_T)
-    left = None
-    right = None
-    if Relative_T[2] < 0: 
-        print("images are not left and right respectively")
-        left = Image2
-        right = Image1
-        Relative_R , Relative_T , Baseline = Find_Relative_R_T_B(Im2_R , Im2_T , Im1_R , Im1_T)
-    else:
-        left = Image1
-        right = Image2
 
+    left = Image1
+    right = Image2
+    # Relative_R, Relative_T , Baseline = Find_Relative_R_T_B_using_F(Image1["Image"], Image2["Image"] , Image1["K"] , Image2["K"])
+
+    print(Relative_T.shape , Relative_R.shape)
+    if Relative_T[1] <=  0: 
+        raise ValueError("Relative T is not in front of the camera")
     Rectification_R_left = find_Rectification_R(EPS , Relative_T)
     Rectification_R_right = Rectification_R_left @ Relative_R
     Rectification_T_right = Rectification_R_left @ Relative_T
@@ -250,5 +311,6 @@ def Two_Image_Stereo(Image1 , Image2 , Kernel_size=5 , EPS= 1e-6):
     d0 = K_corrected_right[1,2] - K_corrected_left[1,2]
     Disparity_map , Consitency_Map = Disparity_Map(Rectified_left_image , Rectified_right_image , Kernel_size=Kernel_size , d0 = d0)
     Depth_map , Points_cloud = Depth_Map(Disparity_map , K_corrected_left,  Baseline)
-    mask , World_point_cloud , Camera_point_cloud , Point_cloud_colors = Point_Cloud_refiner(Depth_Map , Rectified_left_image , Points_cloud , Rectification_R_left , Rectification_T_right , Consitency_Map , z_near=0.1 , z_far=1000)
+    # mask , World_point_cloud , Camera_point_cloud , Point_cloud_colors = Point_Cloud_refiner(Depth_map , Rectified_left_image , Points_cloud , Rectification_R_left , Rectification_T_right , Consitency_Map , z_near=0.1 , z_far=1000)
+    mask , World_point_cloud , Camera_point_cloud , Point_cloud_colors = postprocess(Depth_map , Rectified_left_image , Points_cloud , Rectification_R_left , Rectification_T_right , Consitency_Map , z_near=0.1 , z_far=1000)
     return World_point_cloud , Point_cloud_colors , Disparity_map , Depth_map
